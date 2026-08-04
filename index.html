@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Záclony</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #111; color: #eee; font-family: system-ui, sans-serif; }
+  h1 { text-align: center; padding: 1rem; font-size: 1.2rem; font-weight: 600; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 6px;
+    padding: 0 6px 6px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .grid img {
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    object-fit: cover;
+    border-radius: 6px;
+    cursor: pointer;
+    display: block;
+  }
+  .viewer {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    touch-action: none;
+  }
+  .viewer.open { display: flex; }
+  .viewer img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  .close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    font-size: 1.3rem;
+    z-index: 12;
+    cursor: pointer;
+  }
+  .counter {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.5);
+    padding: 4px 14px;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    z-index: 12;
+  }
+</style>
+</head>
+<body>
+
+<h1>Záclony</h1>
+<div class="grid" id="grid"></div>
+
+<div class="viewer" id="viewer">
+  <button class="close" id="close">✕</button>
+  <img id="big" src="" alt="">
+  <div class="counter" id="counter"></div>
+</div>
+
+<script>
+const COUNT = 9;
+const grid = document.getElementById("grid");
+const viewer = document.getElementById("viewer");
+const big = document.getElementById("big");
+const counter = document.getElementById("counter");
+let current = 0;
+
+const src = (i) => `img/${String(i + 1).padStart(2, "0")}.jpg`;
+
+for (let i = 0; i < COUNT; i++) {
+  const img = document.createElement("img");
+  img.src = src(i);
+  img.loading = "lazy";
+  img.addEventListener("click", () => open(i));
+  grid.appendChild(img);
+}
+
+function open(i) {
+  current = i;
+  big.src = src(i);
+  counter.textContent = `${i + 1} / ${COUNT}`;
+  viewer.classList.add("open");
+}
+
+function step(dir) {
+  open((current + dir + COUNT) % COUNT);
+}
+
+function close() {
+  viewer.classList.remove("open");
+}
+
+// tap/click: right half = next, left half = back; also real right-click = next
+viewer.addEventListener("click", (e) => {
+  if (e.target.closest(".close")) return;
+  step(e.clientX > window.innerWidth / 2 ? 1 : -1);
+});
+viewer.addEventListener("contextmenu", (e) => {
+  e.preventDefault();
+  step(1);
+});
+
+// swipe
+let touchX = null;
+viewer.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+viewer.addEventListener("touchend", (e) => {
+  if (touchX === null) return;
+  const dx = e.changedTouches[0].clientX - touchX;
+  if (Math.abs(dx) > 50) step(dx < 0 ? 1 : -1);
+  touchX = null;
+});
+
+document.getElementById("close").addEventListener("click", (e) => { e.stopPropagation(); close(); });
+document.addEventListener("keydown", (e) => {
+  if (!viewer.classList.contains("open")) return;
+  if (e.key === "ArrowRight") step(1);
+  if (e.key === "ArrowLeft") step(-1);
+  if (e.key === "Escape") close();
+});
+</script>
+</body>
+</html>
